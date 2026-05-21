@@ -1,3 +1,4 @@
+# minerv1: Basic auto-miner. Straight-line tunnel. Fortune pick on slot 9. Hardcoded +X direction. Discord ping on stop.
 import time
 import math
 import os
@@ -5,115 +6,94 @@ import sys
 import subprocess
 import minescript as m
 
-def send_discord_notification(reason):
-    """
-    Finds your discord_webhook2.py script in the same folder 
-    and executes it with the shutdown reason as an argument.
-    """
-    try:
-        # Get the folder directory where this miner script lives
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        webhook_script_path = os.path.join(script_dir, "discord_webhook2.py")
-        
-        m.echo("Sending Discord notification via discord_webhook2.py...")
-        
-        # Run your script exactly how it expects to be run
-        subprocess.run(
-            [sys.executable, webhook_script_path, reason], 
-            check=True, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE
-        )
-    except Exception as e:
-        m.echo(f"❌ Failed to trigger discord_webhook2.py: {e}")
+global python_path
+python_path = r"C:\Python314\python.exe"
+
+def call_discord_webhook(message_text):
+    #m.echo(f"DEBUG: webhook called with: {message_text}")
+    result = subprocess.Popen(
+        [python_path, r"C:\Users\jackn\AppData\Roaming\.minecraft\minescript\discord_webhook2.py", message_text],
+        #timeout=10
+    )
+    m.echo(f"returncode: {result.returncode}")
 
 def get_snapped_direction():
-    """Reads sloppy angle and returns exact X/Z step vectors for the nearest 90-degree axis."""
-    yaw = m.get_player_rotation()[0]
+    yaw, pitch = m.player_orientation()
     norm_yaw = yaw % 360
-    if norm_yaw < 0: 
+    if norm_yaw < 0:
         norm_yaw += 360
-        
+
     if 315 <= norm_yaw or norm_yaw < 45:
-        return 0, 1   # South (+Z)
+        return 0, 1, "SOUTH (+Z)"
     elif 45 <= norm_yaw < 135:
-        return -1, 0  # West (-X)
+        return -1, 0, "WEST (-X)"
     elif 135 <= norm_yaw < 225:
-        return 0, -1  # North (-Z)
+        return 0, -1, "NORTH (-Z)"
     else:
-        return 1, 0   # East (+X)
+        return 1, 0, "EAST (+X)"
 
 def align_player_camera(dx, dz):
-    """Forces the crosshairs to snap perfectly flat and along the design grid."""
-    pos = m.get_player_pos()
+    pos = m.player_position()  # FIXED: was m.get_player_pos()
     px, py, pz = pos[0], pos[1], pos[2]
-    
     target_x = px + (dx * 5)
     target_y = py + 1.62
     target_z = pz + (dz * 5)
-    
     m.player_look_at(target_x, target_y, target_z)
-    time.sleep(0.15) 
+    time.sleep(0.15)
 
 def mine_block_at(x, y, z):
-    """Aims and mines a block until it becomes air."""
     m.player_look_at(x + 0.5, y + 0.5, z + 0.5)
     time.sleep(0.05)
-    
-    timeout = time.time() + 10 
-    while m.getblock(x, y, z) != "minecraft:air":
+
+    timeout = time.time() + 10
+    while m.getblocklist([(x, y, z)])[0] != "minecraft:air":  # FIXED: was m.getblock()
         if time.time() > timeout:
-            raise Exception("Block took too long to break. Pickaxe is likely broken!")
+            raise Exception("Block took too long to break! Is your tool broken?")
         m.player_press_attack(True)
         time.sleep(0.05)
     m.player_press_attack(False)
 
 def main():
-    m.echo("🚀 Starting Auto-Aligning Miner...")
-    stop_reason = "⛏️ Automated mining run completed successfully!"
-    
+    m.echo("⛏️ Initializing Auto-Miner...")
+    stop_reason = "Mining done"
+
     try:
-        dx, dz = get_snapped_direction()
+        dx, dz, dir_name = get_snapped_direction()
+        m.echo(f"🔒 Direction locked: {dir_name}. Snapping camera...")
         align_player_camera(dx, dz)
-        
-        start_pos = m.get_player_pos()
-        current_x = int(math.floor(start_pos[0]))
-        current_y = int(math.floor(start_pos[1]))
-        current_z = int(math.floor(start_pos[2]))
-        
-        # Test run of 20 blocks
+
+        pos = m.player_position()  # FIXED
+        current_x = int(math.floor(pos[0]))
+        current_y = int(math.floor(pos[1]))
+        current_z = int(math.floor(pos[2]))
+
         for step in range(20):
-            # Periodic auto-aim realignment every 3 blocks
             if step > 0 and step % 3 == 0:
                 align_player_camera(dx, dz)
-            
+
             m.echo(f"Digging step {step + 1}/20...")
-            
+
             tx = current_x + dx
             tz = current_z + dz
-            
-            # Mine 1x2 tunnel layout
+
             mine_block_at(tx, current_y + 1, tz)
             mine_block_at(tx, current_y, tz)
-            
-            # Step forward
+
             m.player_press_forward(True)
-            time.sleep(0.45) 
+            time.sleep(0.45)
             m.player_press_forward(False)
             time.sleep(0.05)
-            
+
             current_x = tx
             current_z = tz
-            
+
     except Exception as e:
-        stop_reason = f"🚨 Bot stopped due to an error: {str(e)}"
-        m.echo(f"🛑 Error detected: {str(e)}")
-        raise e
-        
+        stop_reason = f"🚨 Bot stopped: {str(e)}"
+        m.echo(f"🛑 Mining loop broke: {str(e)}")
+
     finally:
-        m.echo("🔌 Shutting down bot script...")
-        # This guarantees your discord_webhook2.py gets executed no matter what
-        send_discord_notification(stop_reason)
+        m.echo("🔌 Triggering Discord notification...")
+        call_discord_webhook(stop_reason)
 
 if __name__ == "__main__":
     main()

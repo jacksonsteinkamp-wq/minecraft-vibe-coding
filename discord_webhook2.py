@@ -25,7 +25,7 @@ webhook_url = "https://discord.com/api/webhooks/1506790927040118927/MO_j7qDoG4sd
 data = {
     "content": content,
     "username": "Minecraft Bot",
-    "avatar_url": "https://discord.com/channels/1506548208858431488/1506790908719398922/1506792757597831298"
+    "avatar_url": "https://raw.githubusercontent.com/jacksonsteinkamp-wq/minecraft-vibe-coding/main/dfa7f19c-b41d-4a47-97a5-42f9353b97972.png"
 }
 
 # Convert data to JSON

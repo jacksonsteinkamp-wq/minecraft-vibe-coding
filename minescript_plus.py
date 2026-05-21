@@ -24,6 +24,7 @@ from os import path
 from sys import exit, stderr, version # pylint: disable=W0622
 from sys import version_info as svi
 from time import sleep
+import time
 from math import floor
 # --- Imports for 1.21.11+ ---
 from base64 import b64decode
@@ -37,7 +38,6 @@ from minescript import (set_default_executor, EventQueue, EventType, EntityData,
 from minescript import VersionInfo as VF
 from minescript import version_info as ver_info
 from java import JavaClass, eval_pyjinn_script
-
 lib_nbt_module: bool = True
 try:
     import lib_nbt
@@ -617,6 +617,82 @@ class Inventory:
             return container_menu.getContainer().getContainerSize()
         except Exception:
             return -1
+
+    @staticmethod
+    def drop_slot(slot: int) -> None:
+        """
+        Drops the entire item stack from the specified inventory slot (0-35).
+        For hotbar slots (0-8), selects the slot and drops directly.
+        For main inventory slots (9-35), opens the player inventory, picks up
+        the stack then clicks outside to drop, and closes the inventory.
+
+        Args:
+            slot (int): The inventory slot to drop from (0-35).
+        """
+        if slot <= 8:
+            from minescript import player_inventory_select_slot
+            player_inventory_select_slot(slot)
+            mc.player.drop(True)
+        else:
+            Inventory._drop_inv_slots([slot])
+
+    @staticmethod
+    def move_to_hotbar(slots: list[int], hotbar_targets: list[int]) -> list[int]:
+        """
+        Shift-clicks (QUICK_MOVE) main inventory items into the hotbar.
+        Items automatically move to empty hotbar slots. Returns hotbar_targets
+        unchanged — the caller must re-scan to confirm which moved.
+
+        Args:
+            slots (list[int]): Main inventory slots to move (9-35).
+            hotbar_targets (list[int]): Ignored — returned as-is for convenience.
+
+        Returns:
+            list[int]: hotbar_targets (re-scan to verify placement).
+        """
+        if not slots:
+            return []
+
+        press_key_bind("key.inventory", True)
+        time.sleep(0.05)
+        press_key_bind("key.inventory", False)
+
+        if not Screen.wait_screen(delay=1000):
+            return []
+
+        screen = mc.screen
+        if screen is None:
+            return []
+
+        container = screen.getMenu()
+
+        for slot in slots:
+            if slot < 9 or slot > 35:
+                continue
+            mc.gameMode.handleInventoryMouseClick(
+                container.containerId, slot, 0, ClickType.QUICK_MOVE, mc.player)
+            time.sleep(0.25)
+
+        Screen.close_screen()
+        return [h for h in hotbar_targets if 0 <= h <= 8]
+
+    @staticmethod
+    def drop_slots(slots: list[int]) -> None:
+        """
+        Drops entire item stacks from hotbar slots (0-8). For main inventory
+        slots (9-35), use `move_to_hotbar()` first, then drop the returned
+        hotbar slots with this method.
+
+        Args:
+            slots (list[int]): Hotbar slots to drop from (0-8).
+        """
+        for slot in slots:
+            if slot < 0 or slot > 8:
+                continue
+            from minescript import player_inventory_select_slot
+            player_inventory_select_slot(slot)
+            mc.player.drop(True)
+            time.sleep(0.1)
 
 # # # SCREEN # # #
 

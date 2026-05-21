@@ -1,21 +1,37 @@
-# minescript-scripts
+# Minescript Miner
 
-A collection of scripts I’ve created for [**Minescript**](https://github.com/maxuser0/minescript) mod, including Minescript Plus — a feature-rich API extension (actively developed) — as well as various tools and utilities, and some examples.
+## Scripts
 
-## Structure
+| Script | What it does |
+|---|---|
+| `minerv3.py` | Basic auto-miner. Mines forward in a straight tunnel, drops trash every 60s. |
+| `minerv4.py` | v3 + integrated auto-eat. Checks food every cycle, eats from offhand or hotbar. |
+| `autoeat.py` | Standalone auto-eat. Run alongside anything. Checks food every 10s. |
+| `dropstacktest.py` | Test script for trash dropping logic. |
 
-* lib — Modules to provide functionality to scripts
-* svc — Scripts meant to run as services, not commands
-* tools — Just some tools
-* The rest are commands or just experiments or examples
+## Hotbar Layout
 
-## Notes
+| Slot | Item |
+|---|---|
+| 1-8 (internal 0-7) | Tools (pickaxes, shovels) |
+| 9 (internal 8) | **Fortune pickaxe** — miner auto-selects it for ores |
+| Offhand | **Food** — auto-eat checks offhand first, then hotbar |
 
-All code in this repository is developed by me. When I use (or rely on) other people's code, I acknowledge proper credit in the script itself, and in its README if there is one. 
+Food can go in any hotbar slot too, but offhand is preferred since the miner never needs to select a different slot to eat from there.
 
-## License and Attribution
+## How to Run
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+```
+/run minerv3
+/run minerv4
+/run autoeat
+```
 
-If you use this code (or any part of it), you must give proper credit by mentioning *RazrCraft* and 
-linking back to this repository: [https://github.com/R4z0rX/minescript-scripts](https://github.com/R4z0rX/minescript-scripts)
+Press ESC to stop any script.
+
+## Inventory Full
+
+When the miner can't drop any more trash and ≥35/36 slots are full, it sends a Discord webhook and stops.
+
+
+we will add the pinging and patterns and other settings with ui later. one field can be discord id so the bot can ping them "Hello <@1130279768856723596>" pings "Hello @MarsReaper22"
