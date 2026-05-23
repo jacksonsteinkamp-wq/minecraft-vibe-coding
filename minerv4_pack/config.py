@@ -1,5 +1,8 @@
 import os
 
+def block_id(block):
+    return block.split("[")[0] if "[" in block else block
+
 ESCAPE_KEY = 256
 python_path = r"C:\Python314\python.exe"
 SCRIPT_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -8,7 +11,7 @@ SHOVEL_BLOCKS = {
     "minecraft:dirt", "minecraft:gravel", "minecraft:sand",
     "minecraft:grass_block", "minecraft:coarse_dirt",
     "minecraft:rooted_dirt", "minecraft:mud", "minecraft:clay",
-    "minecraft:soul_sand", "minecraft:soul_soil",
+    "minecraft:soul_sand", "minecraft:soul_soil", "minecraft:snow_block", "minecraft:snow",
 }
 
 ORE_BLOCKS = {
@@ -49,6 +52,17 @@ TRASH_ITEMS = {
     "minecraft:andesite", "minecraft:diorite", "minecraft:granite",
 }
 
+GRAVITY_BLOCKS = {"minecraft:gravel", "minecraft:sand", "minecraft:red_sand"}
+
+MINERAL_ITEMS = ORE_BLOCKS | {
+    "minecraft:raw_iron", "minecraft:raw_gold", "minecraft:raw_copper",
+    "minecraft:diamond", "minecraft:emerald", "minecraft:lapis_lazuli",
+    "minecraft:iron_ingot", "minecraft:gold_ingot", "minecraft:copper_ingot",
+    "minecraft:netherite_ingot", "minecraft:netherite_scrap",
+    "minecraft:redstone", "minecraft:coal", "minecraft:flint",
+    "minecraft:amethyst_shard", "minecraft:quartz",
+}
+
 FOOD_THRESHOLD = 10
 TRASH_INTERVAL = 60
 MOVE_TIMEOUT = 10
@@ -56,3 +70,4 @@ JUMP_HOLD = 0.6
 MOVE_HOLD = 0.45
 MOVED_THRESHOLD = 0.35
 STUCK_THRESHOLD = 0.2
+GIVEUP_TIMEOUT = 120

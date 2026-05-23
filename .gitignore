@@ -6,6 +6,9 @@ __pycache__/
 # Screen recordings
 clips/
 
+# Windows shortcuts
+*.lnk
+
 # C extensions
 *.so
 

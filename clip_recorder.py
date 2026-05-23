@@ -12,13 +12,11 @@ from collections import deque
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 CLIPS_DIR   = os.path.join(SCRIPT_DIR, "clips")
 
-FPS              = 5
+FPS              = 10
 BUFFER_SECONDS   = 60
 TRIGGER_KEYWORDS = ["Miner stopped", "Inventory full"]
 
-BOT_TOKEN  = ""
-CHANNEL_ID = 0
-HOTKEY     = "f9"
+HOTKEY = "f9"
 
 _buffer      = deque()
 _buffer_lock = threading.Lock()
@@ -43,7 +41,7 @@ def _capture_loop():
         return
 
     buffer_ready = False
-    with mss.mss() as sct:
+    with mss.MSS() as sct:
         monitor = sct.monitors[1]
         while _capturing:
             t0 = time.time()
@@ -116,7 +114,7 @@ def _start_hotkey_listener():
         pass
 
 
-async def _discord_listener():
+async def _discord_listener(token, channel_id):
     try:
         import discord
     except ImportError:
@@ -129,10 +127,10 @@ async def _discord_listener():
     class Bot(discord.Client):
         async def on_ready(self):
             print(f"[REC] Discord logged in as {self.user}")
-            ch = self.get_channel(CHANNEL_ID)
+            ch = self.get_channel(channel_id)
             if not ch:
                 try:
-                    ch = await self.fetch_channel(CHANNEL_ID)
+                    ch = await self.fetch_channel(channel_id)
                 except Exception as e:
                     print(f"[REC] Cannot access channel: {e}")
                     return
@@ -151,7 +149,7 @@ async def _discord_listener():
             print("[REC] Listening...")
 
         async def on_message(self, msg):
-            if msg.channel.id != CHANNEL_ID:
+            if msg.channel.id != channel_id:
                 return
             for kw in TRIGGER_KEYWORDS:
                 if kw in msg.content:
@@ -160,7 +158,7 @@ async def _discord_listener():
                     return
 
     try:
-        await Bot(intents=intents).start(BOT_TOKEN)
+        await Bot(intents=intents).start(token)
     except discord.LoginFailure:
         print("[REC] Invalid bot token")
 
@@ -170,9 +168,8 @@ if __name__ == "__main__":
     print(f"  Buffer: {BUFFER_SECONDS}s @ {FPS}FPS")
     print()
 
-    if not BOT_TOKEN or not CHANNEL_ID:
-        print("  Set BOT_TOKEN and CHANNEL_ID at the top of clip_recorder.py")
-        sys.exit(1)
+    BOT_TOKEN  = input("  Discord bot token: ").strip()
+    CHANNEL_ID = int(input("  Discord channel ID: ").strip())
 
     cap_thread = threading.Thread(target=_capture_loop, daemon=True)
     cap_thread.start()
@@ -183,7 +180,7 @@ if __name__ == "__main__":
     _start_hotkey_listener()
     import asyncio
     try:
-        asyncio.run(_discord_listener())
+        asyncio.run(_discord_listener(BOT_TOKEN, CHANNEL_ID))
     except KeyboardInterrupt:
         print("\n[REC] Stopped")
         _capturing = False

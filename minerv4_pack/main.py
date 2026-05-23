@@ -3,12 +3,15 @@ import threading
 import time
 import minescript as m
 from . import state
-from .config import TRASH_INTERVAL, STUCK_THRESHOLD, MOVE_HOLD, ESCAPE_KEY
+from .config import TRASH_INTERVAL, STUCK_THRESHOLD, MOVE_HOLD, GIVEUP_TIMEOUT, ESCAPE_KEY, block_id, GRAVITY_BLOCKS
 from .discord import discord_ping
 from .trash import drop_trash
 from .eat import auto_eat
+from .inventory import move_hotbar_to_inventory
 from .mining import mine_block_at
 from .movement import try_step_up
+from .gravel import handle_gravel
+from .vein import mine_ores
 
 def watch_for_escape():
     with m.EventQueue() as eq:
@@ -48,39 +51,109 @@ def main():
     x, y, z = map(int, map(math.floor, pos))
     segment = 0
     last_trash = time.time()
+    last_inv_clean = time.time()
     try:
+        started_stuck = None
         while True:
             state.check_stop()
+            auto_eat()
+            pos = m.player_position()
+            _, y, _ = map(int, map(math.floor, pos))
             fx, fz = x + dx, z + dz
+
+            b_head = block_id(m.getblocklist([(fx, y + 1, fz)])[0])
+            b_feet = block_id(m.getblocklist([(fx, y, fz)])[0])
+            if b_head in GRAVITY_BLOCKS or b_feet in GRAVITY_BLOCKS:
+                x, z, y = handle_gravel(dx, dz, x, y, z)
+                started_stuck = None
+                continue
+
             ok = mine_block_at(fx, y + 1, fz)
             ok = mine_block_at(fx, y, fz) and ok
+
+            for _ in range(5):
+                b1 = block_id(m.getblocklist([(fx, y + 1, fz)])[0])
+                b2 = block_id(m.getblocklist([(fx, y, fz)])[0])
+                if b1 != "minecraft:air":
+                    mine_block_at(fx, y + 1, fz)
+                if b2 != "minecraft:air":
+                    mine_block_at(fx, y, fz)
+                if b1 == "minecraft:air" and b2 == "minecraft:air":
+                    break
+                state.check_stop()
+                time.sleep(0.1)
+
             if not ok:
                 m.echo("[MOVE] mining failed, trying to step up")
                 if not try_step_up(dx, dz, x, y, z):
-                    raise Exception("Cannot move forward")
-            else:
-                before = m.player_position()
-                m.player_press_forward(True)
-                try:
-                    wait_until = time.time() + MOVE_HOLD
-                    while time.time() < wait_until:
-                        state.check_stop()
-                        time.sleep(0.05)
-                finally:
-                    m.player_press_forward(False)
-                after = m.player_position()
-                moved = math.sqrt((after[0]-before[0])**2 + (after[2]-before[2])**2)
-                if moved < STUCK_THRESHOLD:
-                    m.echo("[MOVE] stuck detected")
-                    if not try_step_up(dx, dz, x, y, z):
-                        raise Exception("Cannot move forward")
+                    m.echo("[MOVE] step up failed, retrying from same position")
+                    time.sleep(0.3)
+                    if started_stuck is None:
+                        started_stuck = time.time()
+                    elif time.time() - started_stuck > GIVEUP_TIMEOUT:
+                        raise Exception("Gave up: stuck for too long")
+                    continue
+
+            before = m.player_position()
+            m.player_press_forward(True)
+            try:
+                wait_until = time.time() + MOVE_HOLD
+                while time.time() < wait_until:
+                    state.check_stop()
+                    time.sleep(0.05)
+            finally:
+                m.player_press_forward(False)
+            after = m.player_position()
+            moved = math.sqrt((after[0]-before[0])**2 + (after[2]-before[2])**2)
+            if moved < STUCK_THRESHOLD:
+                b1 = block_id(m.getblocklist([(fx, y + 1, fz)])[0])
+                b2 = block_id(m.getblocklist([(fx, y, fz)])[0])
+                b3 = block_id(m.getblocklist([(fx, y - 1, fz)])[0])
+                if b1 != "minecraft:air" or b2 != "minecraft:air" or b3 != "minecraft:air":
+                    m.echo("[MOVE] wall ahead, mining")
+                    if b1 != "minecraft:air":
+                        mine_block_at(fx, y + 1, fz)
+                    if b2 != "minecraft:air":
+                        mine_block_at(fx, y, fz)
+                    if b3 != "minecraft:air":
+                        mine_block_at(fx, y - 1, fz)
+                    if started_stuck is None:
+                        started_stuck = time.time()
+                    elif time.time() - started_stuck > GIVEUP_TIMEOUT:
+                        raise Exception("Gave up: stuck for too long")
+                    continue
+                m.echo("[MOVE] stuck detected")
+                if try_step_up(dx, dz, x, y, z):
+                    before = m.player_position()
+                    m.player_press_forward(True)
+                    try:
+                        wait_until = time.time() + MOVE_HOLD
+                        while time.time() < wait_until:
+                            state.check_stop()
+                            time.sleep(0.05)
+                    finally:
+                        m.player_press_forward(False)
+                    after = m.player_position()
+                if math.sqrt((after[0]-before[0])**2 + (after[2]-before[2])**2) < STUCK_THRESHOLD:
+                    m.echo("[MOVE] cannot unstick, retrying")
+                    time.sleep(0.3)
+                    if started_stuck is None:
+                        started_stuck = time.time()
+                    elif time.time() - started_stuck > GIVEUP_TIMEOUT:
+                        raise Exception("Gave up: stuck for too long")
+                    continue
             x, z = fx, fz
             segment += 1
+            started_stuck = None
+            x, z = mine_ores(dx, dz, x, y, z)
             auto_eat()
             now = time.time()
             if now - last_trash >= TRASH_INTERVAL:
                 drop_trash(dx, dz)
                 last_trash = now
+            if now - last_inv_clean >= 10:
+                move_hotbar_to_inventory()
+                last_inv_clean = now
     except Exception as e:
         m.echo(f"[FATAL] {e}")
         if state.STOP_REASON not in ("user", "inventory_full"):
