@@ -26,7 +26,7 @@ Food can go in any hotbar slot too, but offhand is preferred since the miner nev
 ```
 /run minerv3
 /run minerv4
-/run run_v4
+w/run run_v4
 /run autoeat
 ```
 
