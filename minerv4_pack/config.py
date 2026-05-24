@@ -35,6 +35,20 @@ SHOVEL_ITEMS = {
     "minecraft:netherite_shovel",
 }
 
+TOOL_ITEMS = PICK_TIER.keys() | SHOVEL_ITEMS | {
+    "minecraft:wooden_sword", "minecraft:stone_sword",
+    "minecraft:iron_sword", "minecraft:diamond_sword",
+    "minecraft:netherite_sword",
+    "minecraft:wooden_axe", "minecraft:stone_axe",
+    "minecraft:iron_axe", "minecraft:diamond_axe",
+    "minecraft:netherite_axe",
+    "minecraft:wooden_hoe", "minecraft:stone_hoe",
+    "minecraft:iron_hoe", "minecraft:diamond_hoe",
+    "minecraft:netherite_hoe",
+}
+
+KEEP_IN_HOTBAR = TOOL_ITEMS | FOOD_ITEMS
+
 FOOD_ITEMS = {
     "minecraft:apple", "minecraft:baked_potato", "minecraft:beef",
     "minecraft:bread", "minecraft:carrot", "minecraft:chicken",

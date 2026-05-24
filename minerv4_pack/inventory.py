@@ -1,7 +1,7 @@
 import time
 import minescript as m
 from minescript_plus import mc, Screen, press_key_bind, ClickType
-from .config import MINERAL_ITEMS
+from .config import KEEP_IN_HOTBAR
 
 HOTBAR_CONTAINER_OFFSET = 36
 
@@ -11,7 +11,7 @@ def move_hotbar_to_inventory():
     names = []
     for i in inv:
         if i.slot is not None and i.slot <= 8 and i.item:
-            if i.item in MINERAL_ITEMS:
+            if i.item not in KEEP_IN_HOTBAR:
                 to_move.append(i.slot)
                 names.append(i.item.split(":")[-1])
     if not to_move:
