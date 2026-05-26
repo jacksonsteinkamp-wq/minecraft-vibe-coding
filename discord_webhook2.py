@@ -24,7 +24,7 @@ webhook_url = "https://discord.com/api/webhooks/1506790927040118927/MO_j7qDoG4sd
 # Define the message data
 data = {
     "content": content,
-    "username": "Minecraft Bot",
+    "username": "Alya Minor",
     "avatar_url": "https://raw.githubusercontent.com/jacksonsteinkamp-wq/minecraft-vibe-coding/main/dfa7f19c-b41d-4a47-97a5-42f9353b97972.png"
 }
 
