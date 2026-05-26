@@ -11,7 +11,7 @@
   - Tunnel distance from base
   - Discord ID for DM pings (@user)
   - Discord webhook URL
-  - Tool break threshold (for both fortune and otherwise)
+  - Tool break threshold (for both fortune and otherwise) (this means like if the tools are allowed to be broken by the bot)
   - All tunable constants (trash interval, food threshold, etc.)
   - Slot for Fortune pick (if there is one)
 - Auto-start clip recorder or integrate into UI

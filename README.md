@@ -1,63 +1,54 @@
 # Minescript Miner
 
-## Scripts
+## Features
 
-| Script | What it does |
+| Feature | Detail |
 |---|---|
-| `minerv3.py` | Basic auto-miner. Mines forward in a straight tunnel, drops trash every 60s. |
-| `minerv4.py` | v3 + integrated auto-eat. Checks food every cycle, eats from offhand or hotbar. |
-| `run_v4.py` | Same as v4, sourced from the `minerv4_pack/` module split. |
-| `autoeat.py` | Standalone auto-eat. Run alongside anything. Checks food every 10s. |
-| `dropstacktest.py` | Test script for trash dropping logic. |
-| `clip_recorder.py` | Standalone screen recorder — see section below. |
+| **Auto‑mine** | Mines blocks ahead in a straight tunnel (head + feet level) |
+| **Best‑tool selection** | Picks the correct tool for each block — shovel for dirt/gravel, pickaxe for stone/ore. Selects lowest‑tier usable tool first to save higher tiers for ores. Uses NBT damage to pick the most‑durable item within the same tier. Falls back to fist if no tool. |
+| **Fortune pickaxe** | Auto‑selects fortune pickaxe (slot 9) for ore blocks |
+| **Auto‑eat** | Checks hunger every loop cycle; eats from offhand or any hotbar slot; ESC‑safe (chunked sleeps) |
+| **Trash dropping** | Drops cobblestone, dirt, gravel, andesite, diorite, granite from hotbar every 60s. Uses number‑key select + `drop(True)` with 0.3s delay per slot. |
+| **Inventory management** | Every 10s, shift‑clicks non‑tool/non‑food items from hotbar into main inventory to keep the hotbar clean for mining |
+| **Gravel handling** | Detects gravel/sand ahead; holds W forward while mining all blocks in the column; clears up to 15 gravity blocks above the player; descends back to original Y when done |
+| **Wall‑ahead detection** | If the player doesn't move after pressing forward, mines any solid blocks at head, feet, and step level |
+| **Step‑up** | If forward mining fails, mines 6 blocks (player head, above head, front step, front feet, front head, above front) to step up, retries 3 times, digs below as last resort |
+| **Stuck handling** | Tracks a stuck timer; resets on any successful movement; after 120s of being stuck, raises an exception → Discord ping |
+| **Discord ping** | Sends a webhook on actual crashes / inventory full / stuck timeout (not on user ESC stop) |
+| **ESC shutdown** | ESC immediately stops all loops via a daemon thread watcher; `check_stop()` every 0.05s in all blocking loops |
+| **Ore‑vein mode** *(disabled)* | BFS flood‑fill mines connected ore veins through walls. Check `minerv4_pack/vein.py`. Set `# x, z = mine_ores(...)` in `main.py` to re‑enable. |
+
+## Usage
+
+```
+/w run run_v4
+```
+
+The miner starts mining in the direction you're facing. ESC to stop.
 
 ## Hotbar Layout
 
 | Slot | Item |
 |---|---|
-| 1-8 (internal 0-7) | Tools (pickaxes, shovels) |
-| 9 (internal 8) | **Fortune pickaxe** — miner auto-selects it for ores |
-| Offhand | **Food** — auto-eat checks offhand first, then hotbar |
+| 1–8 | Tools (pickaxes, shovels, swords, etc.) |
+| 9 | **Fortune pickaxe** — auto‑selected for ores |
+| Offhand | **Food** — auto‑eat checks offhand first, then hotbar |
 
-Food can go in any hotbar slot too, but offhand is preferred since the miner never needs to select a different slot to eat from there.
+Food can go in any hotbar slot. Tools in slots 1–8, highest durability pickaxe per tier is auto‑selected.
 
-## How to Run
+## Inventory & Trash
 
-```
-/run minerv3
-/run minerv4
-w/run run_v4
-/run autoeat
-```
-
-Press ESC to stop any script.
-
-## Inventory Full
-
-When the miner can't drop any more trash and ≥35/36 slots are full, it sends a Discord webhook and stops.
+- **Every 10s**: non‑tool, non‑food items in the hotbar are shift‑clicked into the main inventory
+- **Every 60s**: trash blocks (cobblestone, dirt, gravel, andesite, diorite, granite) are dropped from the hotbar
+- If ≥35/36 inventory slots are full and no trash can be dropped, the miner sends a Discord alert and stops
 
 ## Clip Recorder
 
-`clip_recorder.py` is a standalone script (not run via Minescript) that continuously records your screen and saves the last 60 seconds whenever the miner stops or crashes.
+`clip_recorder.py` is a standalone script (not run via Minescript) that records the screen into a 60‑second ring buffer. It saves a clip when the Discord bot detects a miner stop/crash message, or on F9 hotkey.
 
-**How it works:**
-- Records the primary monitor at 5 FPS into a 60-second ring buffer
-- Uses a Discord bot to watch the channel where the miner's stop/crash webhooks are posted
-- On a matching message ("Miner stopped" / "Inventory full"), saves the buffer as an MP4 to `clips/`
-- Press the hotkey (default F9) to save a manual clip anytime
-- Beeps when a clip is saved
-- On startup, also checks the last 20 messages in case the miner crashed while the recorder was off
-
-**Setup:** Set `BOT_TOKEN`, `CHANNEL_ID`, and `HOTKEY` at the top of `clip_recorder.py`, then run:
+**Run:**
 ```
 python clip_recorder.py
 ```
 
-**Dependencies** (pip install):
-- `mss` — screen capture
-- `opencv-python` — video encoding
-- `discord.py` — Discord bot API
-- `pynput` — global hotkey listener
-
-**Notes:**
-- `clips/` is in `.gitignore` — videos are large binaries that shouldn't be pushed to git
+Dependencies: `mss`, `opencv-python`, `discord.py`, `pynput`. See `clip_recorder.py` for token/channel/hotkey config.

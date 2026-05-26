@@ -47,8 +47,6 @@ TOOL_ITEMS = PICK_TIER.keys() | SHOVEL_ITEMS | {
     "minecraft:netherite_hoe",
 }
 
-KEEP_IN_HOTBAR = TOOL_ITEMS | FOOD_ITEMS
-
 FOOD_ITEMS = {
     "minecraft:apple", "minecraft:baked_potato", "minecraft:beef",
     "minecraft:bread", "minecraft:carrot", "minecraft:chicken",
@@ -59,6 +57,8 @@ FOOD_ITEMS = {
     "minecraft:mutton", "minecraft:porkchop", "minecraft:potato",
     "minecraft:pumpkin_pie", "minecraft:rabbit", "minecraft:salmon",
 }
+
+KEEP_IN_HOTBAR = TOOL_ITEMS | FOOD_ITEMS
 
 TRASH_ITEMS = {
     "minecraft:cobblestone", "minecraft:cobbled_deepslate",

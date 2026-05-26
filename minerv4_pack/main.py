@@ -145,7 +145,7 @@ def main():
             x, z = fx, fz
             segment += 1
             started_stuck = None
-            x, z = mine_ores(dx, dz, x, y, z)
+            # x, z = mine_ores(dx, dz, x, y, z)
             auto_eat()
             now = time.time()
             if now - last_trash >= TRASH_INTERVAL:
